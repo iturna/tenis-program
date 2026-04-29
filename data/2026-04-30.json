@@ -1,0 +1,74 @@
+{
+  "reservations": {
+    "2026-04-30|3K|11:00": {
+      "date": "2026-04-30",
+      "court": "3K",
+      "time": "11:00",
+      "owner": "Özge Tenis",
+      "status": "ariyor",
+      "partners": [],
+      "merge": false,
+      "note": "[29.04.2026 12:08] rezervasyon"
+    },
+    "2026-04-30|3K|14:00": {
+      "date": "2026-04-30",
+      "court": "3K",
+      "time": "14:00",
+      "owner": "Gökhan Demirbilek",
+      "status": "servis",
+      "partners": [],
+      "merge": false,
+      "note": "[29.04.2026 12:00] rezervasyon\n[29.04.2026 12:01] 'Muhtemelen servis antrenmanı yapacağım. Gelmek isteyeni beklerim'"
+    },
+    "2026-04-30|3K|15:00": {
+      "date": "2026-04-30",
+      "court": "3K",
+      "time": "15:00",
+      "owner": "Sabri Dizmen",
+      "status": "ariyor",
+      "partners": [],
+      "merge": false,
+      "note": "[29.04.2026 12:01] rezervasyon"
+    },
+    "2026-04-30|2K|16:00": {
+      "date": "2026-04-30",
+      "court": "2K",
+      "time": "16:00",
+      "owner": "Kübra Demircioğlu",
+      "status": "ariyor",
+      "partners": [],
+      "merge": false,
+      "note": "[29.04.2026 12:02] ekran görüntüsünden eklendi"
+    },
+    "2026-04-30|3K|19:00": {
+      "date": "2026-04-30",
+      "court": "3K",
+      "time": "19:00",
+      "owner": "Yağmur Düblen",
+      "status": "ariyor",
+      "partners": [],
+      "merge": false,
+      "note": "[29.04.2026 12:01] rezervasyon"
+    },
+    "2026-04-30|3K|20:00": {
+      "date": "2026-04-30",
+      "court": "3K",
+      "time": "20:00",
+      "owner": "Koray Basak",
+      "status": "ariyor",
+      "partners": [],
+      "merge": false,
+      "note": "[29.04.2026 12:02] rezervasyon"
+    },
+    "2026-04-30|2K|22:00": {
+      "date": "2026-04-30",
+      "court": "2K",
+      "time": "22:00",
+      "owner": "Sümeyra Kalaycı",
+      "status": "devredildi",
+      "partners": ["Kübra"],
+      "merge": false,
+      "note": "[29.04.2026 12:01] Sümeyra rezerve etti\n[29.04.2026 12:02] Sümeyra: 'İsteyen alabilir'\n[29.04.2026 12:03] Kübra: 'Ben oynamak isterim'\n[29.04.2026 12:05] Sümeyra: 'O halde sana devredeyim' → Kübra'ya devredildi"
+    }
+  }
+}
