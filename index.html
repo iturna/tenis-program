@@ -215,15 +215,9 @@
     color: var(--text);
     font-weight: 600;
   }
-  td.slot.s-ariyor      { background: #fff7ed; border-left: 4px solid var(--c-ariyor); }
-  td.slot.s-eslesti     { background: #f0fdf4; border-left: 4px solid var(--c-eslesti); }
-  td.slot.s-cift        { background: #eff6ff; border-left: 4px solid var(--c-cift); }
-  td.slot.s-servis      { background: #fefce8; border-left: 4px solid var(--c-servis); }
-  td.slot.s-devredildi  { background: #faf5ff; border-left: 4px solid var(--c-devredildi); }
-  td.slot.s-iptal       { background: #fef2f2; border-left: 4px solid var(--c-iptal); }
-  td.slot.s-iptal .owner { text-decoration: line-through; color: var(--muted); }
-  td.slot.merged-down { border-bottom-style: dashed; }
-  td.slot.merged-up   { border-top-style: dashed; }
+  td.slot.s-ariyor   { background: #fff7ed; border-left: 4px solid var(--c-ariyor); }
+  td.slot.s-eslesti  { background: #f0fdf4; border-left: 4px solid var(--c-eslesti); }
+  td.slot.s-servis   { background: #fefce8; border-left: 4px solid var(--c-servis); }
 
   .legend {
     display: flex;
@@ -372,12 +366,9 @@
   }
   .status-btn span { font-size: 12px; }
   .status-btn:hover { background: #f9fafb; }
-  .status-btn.selected.s-ariyor     { background: #fff7ed; border-color: var(--c-ariyor); box-shadow: inset 0 0 0 1px var(--c-ariyor); }
-  .status-btn.selected.s-eslesti    { background: #f0fdf4; border-color: var(--c-eslesti); box-shadow: inset 0 0 0 1px var(--c-eslesti); }
-  .status-btn.selected.s-cift       { background: #eff6ff; border-color: var(--c-cift); box-shadow: inset 0 0 0 1px var(--c-cift); }
-  .status-btn.selected.s-servis     { background: #fefce8; border-color: var(--c-servis); box-shadow: inset 0 0 0 1px var(--c-servis); }
-  .status-btn.selected.s-devredildi { background: #faf5ff; border-color: var(--c-devredildi); box-shadow: inset 0 0 0 1px var(--c-devredildi); }
-  .status-btn.selected.s-iptal      { background: #fef2f2; border-color: var(--c-iptal); box-shadow: inset 0 0 0 1px var(--c-iptal); }
+  .status-btn.selected.s-ariyor  { background: #fff7ed; border-color: var(--c-ariyor); box-shadow: inset 0 0 0 1px var(--c-ariyor); }
+  .status-btn.selected.s-eslesti { background: #f0fdf4; border-color: var(--c-eslesti); box-shadow: inset 0 0 0 1px var(--c-eslesti); }
+  .status-btn.selected.s-servis  { background: #fefce8; border-color: var(--c-servis); box-shadow: inset 0 0 0 1px var(--c-servis); }
 
   .toggle-btn {
     display: flex;
@@ -464,7 +455,6 @@
     .modal {
       align-items: flex-end;
     }
-    .status-buttons { grid-template-columns: repeat(2, 1fr); }
     .status-btn { min-height: 56px; padding: 12px 6px; }
     .editor-actions button { padding: 14px 10px; font-size: 15px; }
 
@@ -481,6 +471,7 @@
     <button id="prevDay" title="Önceki gün">‹</button>
     <input type="date" id="datePicker">
     <button id="nextDay" title="Sonraki gün">›</button>
+    <button id="todayBtn">Bugün</button>
     <button id="tomorrowBtn">Yarın</button>
     <button id="copyBtn" class="primary">📷 Görsel Kopyala</button>
     <label class="copy-opt" title="Kapalıysa boş saatler de görselde olur">
@@ -505,11 +496,8 @@
     </table>
     <div class="legend">
       <span><i style="background:var(--c-ariyor)"></i>Rakip arıyor</span>
-      <span><i style="background:var(--c-eslesti)"></i>Tekli eşleşti</span>
-      <span><i style="background:var(--c-cift)"></i>Çift maç</span>
-      <span><i style="background:var(--c-servis)"></i>Servis (tek)</span>
-      <span><i style="background:var(--c-devredildi)"></i>Devredildi</span>
-      <span><i style="background:var(--c-iptal)"></i>İptal</span>
+      <span><i style="background:var(--c-eslesti)"></i>Eşleşti</span>
+      <span><i style="background:var(--c-servis)"></i>Servis</span>
     </div>
   </section>
 
@@ -527,19 +515,13 @@
     </label>
     <div class="field-label">Durum</div>
     <div class="status-buttons" id="ed-status-buttons">
-      <button type="button" class="status-btn s-ariyor"     data-status="ariyor">🟠 <span>Arıyor</span></button>
-      <button type="button" class="status-btn s-eslesti"    data-status="eslesti">🟢 <span>Eşleşti</span></button>
-      <button type="button" class="status-btn s-cift"       data-status="cift">🔵 <span>Çift</span></button>
-      <button type="button" class="status-btn s-servis"     data-status="servis">🟡 <span>Servis</span></button>
-      <button type="button" class="status-btn s-devredildi" data-status="devredildi">🟣 <span>Devir</span></button>
-      <button type="button" class="status-btn s-iptal"      data-status="iptal">❌ <span>İptal</span></button>
+      <button type="button" class="status-btn s-ariyor"  data-status="ariyor">🟠 <span>Arıyor</span></button>
+      <button type="button" class="status-btn s-eslesti" data-status="eslesti">🟢 <span>Eşleşti</span></button>
+      <button type="button" class="status-btn s-servis"  data-status="servis">🟡 <span>Servis</span></button>
     </div>
     <label>Rakip / Diğer Oyuncular
       <input type="text" id="ed-partners" placeholder="Virgül ile ayır: Ali, Veli, Ayşe">
     </label>
-    <button type="button" class="toggle-btn" id="ed-merge-btn">
-      🔗 <span>Sonraki saatle birleşik (2 saatlik çift)</span>
-    </button>
     <label>Not
       <textarea id="ed-note"></textarea>
     </label>
@@ -567,10 +549,7 @@ for (let h = 8; h <= 22; h++) HOURS.push(String(h).padStart(2, '0') + ':00');
 const STATUS_LABEL = {
   ariyor: 'arıyor',
   eslesti: 'eşleşti',
-  cift: 'çift',
   servis: 'servis',
-  devredildi: 'devredildi',
-  iptal: 'iptal',
 };
 
 let state = loadState();
@@ -637,7 +616,6 @@ function snapshot(res) {
     owner: res.owner,
     status: res.status,
     partners: (res.partners || []).slice(),
-    merge: !!res.merge,
   };
 }
 function pushHistory(entry) {
@@ -715,9 +693,6 @@ function renderCell(td, res, date, court, time) {
     return;
   }
   td.classList.add('s-' + res.status);
-  if (res.merge) td.classList.add('merged-down');
-  const prev = getRes(date, court, prevHour(time) || '');
-  if (prev && prev.merge) td.classList.add('merged-up');
 
   const inner = document.createElement('div');
   inner.className = 'cell-inner';
@@ -728,7 +703,7 @@ function renderCell(td, res, date, court, time) {
   if (res.partners && res.partners.length) {
     const p = document.createElement('div');
     p.className = 'partners';
-    p.textContent = (res.status === 'cift' ? '+ ' : 'vs ') + res.partners.join(', ');
+    p.textContent = 'vs ' + res.partners.join(', ');
     inner.appendChild(p);
   }
   const badges = document.createElement('div');
@@ -737,12 +712,6 @@ function renderCell(td, res, date, court, time) {
   sb.className = 'badge';
   sb.textContent = STATUS_LABEL[res.status] || res.status;
   badges.appendChild(sb);
-  if (res.merge) {
-    const mb = document.createElement('span');
-    mb.className = 'badge';
-    mb.textContent = '🔗 birleşik';
-    badges.appendChild(mb);
-  }
   if (res.note) {
     const nb = document.createElement('span');
     nb.className = 'badge';
@@ -762,13 +731,6 @@ function describeEntry(e) {
   const after = e.after, before = e.before;
 
   if (e.action === 'create') {
-    let s = `${after.owner} eklendi`;
-    s += ` — ${STATUS_LABEL[after.status] || after.status}`;
-    if (after.partners && after.partners.length) {
-      const sep = after.status === 'cift' ? '+' : (after.status === 'devredildi' ? '→' : 'vs');
-      s += ` ${sep} ${after.partners.join(', ')}`;
-    }
-    if (after.merge) s += ' 🔗';
     return { slot: slotStr, action: '✚ eklendi', detail: detailLine(after) };
   }
   if (e.action === 'delete') {
@@ -787,7 +749,6 @@ function describeEntry(e) {
     else if (!ap) diffs.push(`oyuncular: temizlendi (eski: ${bp})`);
     else diffs.push(`oyuncular: ${bp} → ${ap}`);
   }
-  if (!!before.merge !== !!after.merge) diffs.push(after.merge ? '🔗 birleşik açıldı' : '🔗 birleşik kaldırıldı');
   const detail = diffs.length ? diffs.join(' · ') : `${after.owner} kaydedildi (değişiklik yok)`;
   return { slot: slotStr, action: '↻ güncellendi', detail };
 }
@@ -795,10 +756,8 @@ function describeEntry(e) {
 function detailLine(snap) {
   let s = `${snap.owner} — ${STATUS_LABEL[snap.status] || snap.status}`;
   if (snap.partners && snap.partners.length) {
-    const sep = snap.status === 'cift' ? '+' : (snap.status === 'devredildi' ? '→' : 'vs');
-    s += ` ${sep} ${snap.partners.join(', ')}`;
+    s += ` vs ${snap.partners.join(', ')}`;
   }
-  if (snap.merge) s += ' 🔗';
   return s;
 }
 
@@ -839,17 +798,12 @@ function escapeHtml(s) {
 // ---------- Editor modal ----------
 let editorContext = null;
 let edStatus = 'ariyor';
-let edMerge = false;
 
 function setEditorStatus(s) {
   edStatus = s;
   for (const btn of document.querySelectorAll('#ed-status-buttons .status-btn')) {
     btn.classList.toggle('selected', btn.dataset.status === s);
   }
-}
-function setEditorMerge(v) {
-  edMerge = !!v;
-  document.getElementById('ed-merge-btn').classList.toggle('active', edMerge);
 }
 
 function openEditor(date, court, time) {
@@ -860,7 +814,6 @@ function openEditor(date, court, time) {
   document.getElementById('ed-owner').value = existing ? (existing.owner || '') : '';
   setEditorStatus(existing ? existing.status : 'ariyor');
   document.getElementById('ed-partners').value = existing && existing.partners ? existing.partners.join(', ') : '';
-  setEditorMerge(existing ? !!existing.merge : false);
   document.getElementById('ed-note').value = existing ? (existing.note || '') : '';
   document.getElementById('ed-delete').style.display = existing ? '' : 'none';
   document.getElementById('editor').classList.remove('hidden');
@@ -876,7 +829,6 @@ function saveFromEditor() {
   const partnersRaw = document.getElementById('ed-partners').value.trim();
   const partners = partnersRaw ? partnersRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
   const status = edStatus;
-  const merge = edMerge;
   const note = document.getElementById('ed-note').value.trim();
   if (!owner) {
     deleteRes(editorContext.date, editorContext.court, editorContext.time);
@@ -885,7 +837,7 @@ function saveFromEditor() {
       date: editorContext.date,
       court: editorContext.court,
       time: editorContext.time,
-      owner, status, partners, merge, note,
+      owner, status, partners, note,
       updated: Date.now(),
     });
   }
@@ -895,12 +847,9 @@ function saveFromEditor() {
 
 // ---------- Image copy ----------
 const STATUS_VISUAL = {
-  ariyor:     { bg: '#fff7ed', edge: '#fb923c', label: '🟠 arıyor' },
-  eslesti:    { bg: '#f0fdf4', edge: '#22c55e', label: '🟢 eşleşti' },
-  cift:       { bg: '#eff6ff', edge: '#3b82f6', label: '🔵 çift' },
-  servis:     { bg: '#fefce8', edge: '#eab308', label: '🟡 servis' },
-  devredildi: { bg: '#faf5ff', edge: '#a855f7', label: '🟣 devir' },
-  iptal:      { bg: '#fef2f2', edge: '#ef4444', label: '❌ iptal' },
+  ariyor:  { bg: '#fff7ed', edge: '#fb923c', label: '🟠 arıyor' },
+  eslesti: { bg: '#f0fdf4', edge: '#22c55e', label: '🟢 eşleşti' },
+  servis:  { bg: '#fefce8', edge: '#eab308', label: '🟡 servis' },
 };
 
 function truncateText(ctx, text, maxW) {
@@ -913,13 +862,10 @@ function truncateText(ctx, text, maxW) {
 function statusText(res) {
   const partners = (res.partners || []).filter(Boolean);
   switch (res.status) {
-    case 'ariyor':     return '🟠 rakip arıyor';
-    case 'eslesti':    return partners.length ? `🟢 vs ${partners.join(', ')}` : '🟢 eşleşti';
-    case 'cift':       return partners.length ? `🔵 çift maç +${partners.join(', ')}` : '🔵 çift maç';
-    case 'servis':     return '🟡 servis';
-    case 'devredildi': return partners.length ? `🟣 ${partners.join(', ')}'a devredildi` : '🟣 devredildi';
-    case 'iptal':      return '❌ iptal';
-    default:           return res.status;
+    case 'ariyor':  return '🟠 rakip arıyor';
+    case 'eslesti': return partners.length ? `🟢 vs ${partners.join(', ')}` : '🟢 eşleşti';
+    case 'servis':  return '🟡 servis';
+    default:        return res.status;
   }
 }
 
@@ -936,8 +882,7 @@ function buildDayText(onlyFilled) {
     }
     if (!items.length) return header + '\n\n(bu güne ait kayıt yok)';
     body = items.map(({ res, courtLabel }) => {
-      const merge = res.merge ? ' 🔗' : '';
-      return `• ${res.time}${merge} — ${res.owner} [${courtLabel}] ${statusText(res)}`;
+      return `• ${res.time} — ${res.owner} [${courtLabel}] ${statusText(res)}`;
     }).join('\n');
   } else {
     const sections = [];
@@ -946,8 +891,7 @@ function buildDayText(onlyFilled) {
       for (const time of HOURS) {
         const r = getRes(currentDate, court.code, time);
         if (r) {
-          const merge = r.merge ? ' 🔗' : '';
-          lines.push(`• ${time}${merge} — ${r.owner} ${statusText(r)}`);
+          lines.push(`• ${time} — ${r.owner} ${statusText(r)}`);
         } else {
           lines.push(`• ${time} —`);
         }
@@ -1049,19 +993,14 @@ function renderDayImage(onlyFilled) {
         ctx.strokeStyle = '#e3e6ea';
         ctx.strokeRect(x + 0.5, y + 0.5, courtW - 1, rowH - 1);
 
-        const ownerColor = r.status === 'iptal' ? '#9ca3af' : '#1f2328';
-        ctx.fillStyle = ownerColor;
+        ctx.fillStyle = '#1f2328';
         ctx.font = `600 13px ${FONT}`;
-        const mergeMark = r.merge ? '🔗 ' : '';
-        ctx.fillText(truncateText(ctx, mergeMark + r.owner, courtW - 18), x + 12, y + 8);
+        ctx.fillText(truncateText(ctx, r.owner, courtW - 18), x + 12, y + 8);
 
         if (r.partners && r.partners.length) {
           ctx.fillStyle = '#656d76';
           ctx.font = `12px ${FONT}`;
-          let prefix = 'vs ';
-          if (r.status === 'cift') prefix = '+ ';
-          else if (r.status === 'devredildi') prefix = '→ ';
-          ctx.fillText(truncateText(ctx, prefix + r.partners.join(', '), courtW - 18), x + 12, y + 28);
+          ctx.fillText(truncateText(ctx, 'vs ' + r.partners.join(', '), courtW - 18), x + 12, y + 28);
         }
 
         ctx.fillStyle = '#374151';
@@ -1155,6 +1094,10 @@ document.getElementById('nextDay').addEventListener('click', () => {
   currentDate = next;
   render();
 });
+document.getElementById('todayBtn').addEventListener('click', () => {
+  currentDate = todayISO();
+  render();
+});
 document.getElementById('tomorrowBtn').addEventListener('click', () => {
   currentDate = tomorrowISO();
   render();
@@ -1164,7 +1107,6 @@ document.getElementById('copyBtn').addEventListener('click', copyDayToClipboard)
 document.querySelectorAll('#ed-status-buttons .status-btn').forEach(btn => {
   btn.addEventListener('click', () => setEditorStatus(btn.dataset.status));
 });
-document.getElementById('ed-merge-btn').addEventListener('click', () => setEditorMerge(!edMerge));
 
 document.getElementById('ed-save').addEventListener('click', saveFromEditor);
 document.getElementById('ed-cancel').addEventListener('click', closeEditor);
@@ -1184,18 +1126,37 @@ document.addEventListener('keydown', e => {
       && e.target.tagName !== 'TEXTAREA') saveFromEditor();
 });
 
-// Init: default to tomorrow (rezervasyon günü). If currently-stored
-// data has a future date that's later than tomorrow, jump there instead.
+// Try to fetch `data/{date}.json` from same origin and merge any
+// reservations that aren't already present in localStorage. This lets
+// the deployed page seed itself with the day's bookings without
+// requiring users to import anything manually.
+async function tryFetchSeed(date) {
+  try {
+    const res = await fetch(`data/${date}.json`, { cache: 'no-store' });
+    if (!res.ok) return 0;
+    const data = await res.json();
+    if (!data || !data.reservations) return 0;
+    let added = 0;
+    for (const [k, r] of Object.entries(data.reservations)) {
+      if (!state.reservations[k]) {
+        state.reservations[k] = r;
+        added++;
+      }
+    }
+    if (added > 0) {
+      saveState();
+      render();
+    }
+    return added;
+  } catch (e) {
+    return 0;
+  }
+}
+
 (function init() {
   currentDate = tomorrowISO();
-  const futureDates = Object.keys(state.reservations)
-    .map(k => k.split('|')[0])
-    .filter(d => d > currentDate);
-  if (futureDates.length) {
-    futureDates.sort();
-    currentDate = futureDates[futureDates.length - 1];
-  }
   render();
+  tryFetchSeed(currentDate);
 })();
 </script>
 </body>

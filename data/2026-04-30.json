@@ -64,11 +64,10 @@
       "date": "2026-04-30",
       "court": "2K",
       "time": "22:00",
-      "owner": "Sümeyra Kalaycı",
-      "status": "devredildi",
-      "partners": ["Kübra"],
-      "merge": false,
-      "note": "[29.04.2026 12:01] Sümeyra rezerve etti\n[29.04.2026 12:02] Sümeyra: 'İsteyen alabilir'\n[29.04.2026 12:03] Kübra: 'Ben oynamak isterim'\n[29.04.2026 12:05] Sümeyra: 'O halde sana devredeyim' → Kübra'ya devredildi"
+      "owner": "Kübra Demircioğlu",
+      "status": "ariyor",
+      "partners": [],
+      "note": "[29.04.2026 12:01] Sümeyra Kalaycı rezerve etti\n[29.04.2026 12:02] Sümeyra: 'İsteyen alabilir'\n[29.04.2026 12:03] Kübra: 'Ben oynamak isterim'\n[29.04.2026 12:05] Sümeyra: 'O halde sana devredeyim' → Kübra'ya devredildi"
     }
   }
 }
