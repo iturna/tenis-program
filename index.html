@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <title>Tenis Grup Rezervasyon</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+// Eski GitHub Pages URL'inden yeni Cloudflare Pages URL'ine yönlendir
+if (location.hostname === 'iturna.github.io') {
+  location.replace('https://tenis-program.pages.dev/' + location.search + location.hash);
+}
+</script>
 <style>
   * { box-sizing: border-box; }
   :root {
@@ -627,28 +633,32 @@ function setRes(res) {
   const before = snapshot(state.reservations[k]);
   state.reservations[k] = res;
   const after = snapshot(res);
-  pushHistory({
+  const histEntry = {
     ts: new Date().toISOString(),
     date: res.date,
     court: res.court,
     time: res.time,
     action: before ? 'update' : 'create',
     before, after,
-  });
+  };
+  pushHistory(histEntry);
   saveState();
+  postOp(res.date, { upsert: res, history: histEntry });
 }
 function deleteRes(date, court, time) {
   const k = key(date, court, time);
   const before = snapshot(state.reservations[k]);
   if (!before) return;
   delete state.reservations[k];
-  pushHistory({
+  const histEntry = {
     ts: new Date().toISOString(),
     date, court, time,
     action: 'delete',
     before, after: null,
-  });
+  };
+  pushHistory(histEntry);
   saveState();
+  postOp(date, { delete: { date, court, time }, history: histEntry });
 }
 function prevHour(time) {
   const [h, m] = time.split(':').map(Number);
@@ -1081,37 +1091,29 @@ function showToast(msg) {
 }
 
 // ---------- Wire up ----------
-document.getElementById('datePicker').addEventListener('change', e => {
-  currentDate = e.target.value;
+function navigateTo(date) {
+  currentDate = date;
   render();
-});
-document.getElementById('prevDay').addEventListener('click', () => {
-  currentDate = shiftDate(currentDate, -1);
-  render();
-});
+  syncDayFromServer(currentDate, { force: true });
+}
+document.getElementById('datePicker').addEventListener('change', e => navigateTo(e.target.value));
+document.getElementById('prevDay').addEventListener('click', () => navigateTo(shiftDate(currentDate, -1)));
 document.getElementById('nextDay').addEventListener('click', () => {
   const next = shiftDate(currentDate, 1);
   if (next > maxDate()) return;
-  currentDate = next;
-  render();
+  navigateTo(next);
 });
-document.getElementById('todayBtn').addEventListener('click', () => {
-  currentDate = todayISO();
-  render();
-});
-document.getElementById('tomorrowBtn').addEventListener('click', () => {
-  currentDate = tomorrowISO();
-  render();
-});
+document.getElementById('todayBtn').addEventListener('click', () => navigateTo(todayISO()));
+document.getElementById('tomorrowBtn').addEventListener('click', () => navigateTo(tomorrowISO()));
 document.getElementById('refreshBtn').addEventListener('click', async () => {
   const btn = document.getElementById('refreshBtn');
   const original = btn.textContent;
   btn.disabled = true;
   btn.textContent = '⏳ Yükleniyor';
-  const added = await tryFetchSeed(currentDate);
+  const updated = await syncDayFromServer(currentDate, { force: true });
   btn.disabled = false;
   btn.textContent = original;
-  showToast(added > 0 ? `🔄 ${added} yeni kayıt eklendi` : '✓ Güncel');
+  showToast(updated ? '🔄 Güncellendi' : '✓ Zaten günceldi');
 });
 document.getElementById('copyBtn').addEventListener('click', copyDayToClipboard);
 
@@ -1137,37 +1139,111 @@ document.addEventListener('keydown', e => {
       && e.target.tagName !== 'TEXTAREA') saveFromEditor();
 });
 
-// Try to fetch `data/{date}.json` from same origin and merge any
-// reservations that aren't already present in localStorage. This lets
-// the deployed page seed itself with the day's bookings without
-// requiring users to import anything manually.
-async function tryFetchSeed(date) {
+// ---------- Server sync (Cloudflare Pages Functions + KV) ----------
+// Polling provides near-instant updates from other clients without
+// requiring WebSockets. ETag/304 keeps bandwidth tiny.
+
+const API_BASE = 'api/day';
+const POLL_MS = 3500;
+const etagByDate = {};
+let pollTimer = null;
+let suppressPollOnce = false;
+
+async function fetchDayFromServer(date, opts = {}) {
   try {
-    const res = await fetch(`data/${date}.json`, { cache: 'no-store' });
-    if (!res.ok) return 0;
+    const headers = {};
+    if (!opts.force && etagByDate[date]) headers['If-None-Match'] = etagByDate[date];
+    const res = await fetch(`${API_BASE}/${date}`, { headers, cache: 'no-store' });
+    if (res.status === 304) return { changed: false };
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const etag = res.headers.get('ETag');
+    if (etag) etagByDate[date] = etag;
     const data = await res.json();
-    if (!data || !data.reservations) return 0;
-    let added = 0;
-    for (const [k, r] of Object.entries(data.reservations)) {
-      if (!state.reservations[k]) {
-        state.reservations[k] = r;
-        added++;
-      }
-    }
-    if (added > 0) {
-      saveState();
-      render();
-    }
-    return added;
+    return { changed: true, data };
   } catch (e) {
-    return 0;
+    console.warn('fetchDayFromServer', e);
+    return { changed: false, error: e };
   }
 }
+
+function applyServerSnapshot(date, data) {
+  if (!data || !data.reservations) return false;
+  let dirty = false;
+  // Replace reservations for this date
+  for (const k of Object.keys(state.reservations)) {
+    if (k.startsWith(date + '|') && !data.reservations[k]) {
+      delete state.reservations[k];
+      dirty = true;
+    }
+  }
+  for (const [k, r] of Object.entries(data.reservations)) {
+    const cur = state.reservations[k];
+    if (!cur || JSON.stringify(cur) !== JSON.stringify(r)) {
+      state.reservations[k] = r;
+      dirty = true;
+    }
+  }
+  // Replace history for this date with server's
+  const otherDays = state.history.filter(h => h.date !== date);
+  const serverHist = (data.history || []).filter(h => h.date === date);
+  const newHist = [...otherDays, ...serverHist];
+  if (JSON.stringify(newHist) !== JSON.stringify(state.history)) {
+    state.history = newHist;
+    dirty = true;
+  }
+  if (dirty) saveState();
+  return dirty;
+}
+
+async function syncDayFromServer(date, opts = {}) {
+  const { changed, data } = await fetchDayFromServer(date, opts);
+  if (!changed || !data) return false;
+  const updated = applyServerSnapshot(date, data);
+  if (updated && date === currentDate) render();
+  return updated;
+}
+
+async function postOp(date, op) {
+  try {
+    suppressPollOnce = true;
+    const res = await fetch(`${API_BASE}/${date}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(op),
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const etag = res.headers.get('ETag');
+    if (etag) etagByDate[date] = etag;
+    return await res.json();
+  } catch (e) {
+    console.warn('postOp', e);
+    showToast('⚠️ Sunucuya yazılamadı (yerel kayıt korundu)');
+    return null;
+  }
+}
+
+function isEditorOpen() {
+  return !document.getElementById('editor').classList.contains('hidden');
+}
+
+function startPolling() {
+  if (pollTimer) return;
+  pollTimer = setInterval(async () => {
+    if (document.hidden || isEditorOpen()) return;
+    if (suppressPollOnce) { suppressPollOnce = false; return; }
+    await syncDayFromServer(currentDate);
+  }, POLL_MS);
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) syncDayFromServer(currentDate, { force: true });
+});
 
 (function init() {
   currentDate = tomorrowISO();
   render();
-  tryFetchSeed(currentDate);
+  // Initial sync from server, then start polling
+  syncDayFromServer(currentDate, { force: true }).finally(startPolling);
 })();
 </script>
 </body>
