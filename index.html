@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <title>Tenis Grup Rezervasyon</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='28' fill='%23d4ed3a' stroke='%23a3c11a' stroke-width='2'/><path d='M9 22 Q32 32 9 42' fill='none' stroke='%23ffffff' stroke-width='2.4' stroke-linecap='round'/><path d='M55 22 Q32 32 55 42' fill='none' stroke='%23ffffff' stroke-width='2.4' stroke-linecap='round'/></svg>">
 <style>
   * { box-sizing: border-box; }
   :root {
@@ -52,7 +53,7 @@
     flex-wrap: wrap;
     margin-left: auto;
   }
-  .controls input[type="date"], button {
+  button {
     padding: 7px 12px;
     border: 1px solid var(--border);
     background: var(--panel);
@@ -67,6 +68,12 @@
   button.primary { background: var(--accent); color: white; border-color: var(--accent); }
   button.primary:hover { background: #1d4ed8; }
   button.danger { color: var(--c-iptal); }
+  button.day-btn.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+  button.day-btn.active:hover { background: #1d4ed8; }
   .copy-opt {
     display: inline-flex;
     align-items: center;
@@ -410,20 +417,12 @@
       margin-left: 0;
       gap: 6px;
     }
-    .controls input[type="date"] {
-      flex: 1;
-      min-width: 0;
-    }
     .controls button {
       padding: 10px 12px;
       min-height: 42px;
       font-size: 13px;
     }
-    .controls #prevDay, .controls #nextDay {
-      padding: 10px 14px;
-      font-size: 18px;
-      line-height: 1;
-    }
+    .controls .day-btn { flex: 1; }
     .copy-opt {
       order: 99;
       width: 100%;
@@ -468,12 +467,8 @@
 <header>
   <h1>🎾 Tenis Grup Rezervasyon</h1>
   <div class="controls">
-    <button id="prevDay" title="Önceki gün">‹</button>
-    <input type="date" id="datePicker">
-    <button id="nextDay" title="Sonraki gün">›</button>
-    <button id="todayBtn">Bugün</button>
-    <button id="tomorrowBtn">Yarın</button>
-    <button id="refreshBtn" title="Sunucudan son veriyi çek">🔄 Güncelle</button>
+    <button id="todayBtn" class="day-btn">Bugün</button>
+    <button id="tomorrowBtn" class="day-btn">Yarın</button>
     <button id="copyBtn" class="primary">📷 Görsel Kopyala</button>
     <label class="copy-opt" title="Kapalıysa boş saatler de görselde olur">
       <input type="checkbox" id="copyOnlyFilled" checked> sadece dolu
@@ -573,24 +568,13 @@ function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
-function localISO(d) {
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
+// Istanbul is UTC+3 year-round (no DST).
+function istanbulISO(offsetDays = 0) {
+  const ms = Date.now() + (3 * 3600 * 1000) + (offsetDays * 86400 * 1000);
+  return new Date(ms).toISOString().slice(0, 10);
 }
-function todayISO() {
-  return localISO(new Date());
-}
-function tomorrowISO() {
-  return shiftDate(todayISO(), 1);
-}
-function shiftDate(iso, days) {
-  const d = new Date(iso + 'T00:00:00');
-  d.setDate(d.getDate() + days);
-  return localISO(d);
-}
-function maxDate() { return tomorrowISO(); }
+function todayISO()    { return istanbulISO(0); }
+function tomorrowISO() { return istanbulISO(1); }
 function formatDateTR(iso) {
   const d = new Date(iso + 'T00:00:00');
   const days = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
@@ -663,11 +647,10 @@ function prevHour(time) {
 
 // ---------- Render schedule ----------
 function render() {
-  const max = maxDate();
-  const dp = document.getElementById('datePicker');
-  dp.value = currentDate;
-  dp.max = max;
-  document.getElementById('nextDay').disabled = currentDate >= max;
+  const today = todayISO();
+  const tomorrow = tomorrowISO();
+  document.getElementById('todayBtn').classList.toggle('active', currentDate === today);
+  document.getElementById('tomorrowBtn').classList.toggle('active', currentDate === tomorrow);
   document.getElementById('dayLabel').textContent = `Gün Programı — ${formatDateTR(currentDate)}`;
   document.getElementById('historyLabel').textContent = `Değişiklik Geçmişi — ${formatDateTR(currentDate)}`;
   const tbody = document.getElementById('scheduleBody');
@@ -1090,25 +1073,8 @@ function navigateTo(date) {
   render();
   syncDayFromServer(currentDate, { force: true });
 }
-document.getElementById('datePicker').addEventListener('change', e => navigateTo(e.target.value));
-document.getElementById('prevDay').addEventListener('click', () => navigateTo(shiftDate(currentDate, -1)));
-document.getElementById('nextDay').addEventListener('click', () => {
-  const next = shiftDate(currentDate, 1);
-  if (next > maxDate()) return;
-  navigateTo(next);
-});
 document.getElementById('todayBtn').addEventListener('click', () => navigateTo(todayISO()));
 document.getElementById('tomorrowBtn').addEventListener('click', () => navigateTo(tomorrowISO()));
-document.getElementById('refreshBtn').addEventListener('click', async () => {
-  const btn = document.getElementById('refreshBtn');
-  const original = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = '⏳ Yükleniyor';
-  const updated = await syncDayFromServer(currentDate, { force: true });
-  btn.disabled = false;
-  btn.textContent = original;
-  showToast(updated ? '🔄 Güncellendi' : '✓ Zaten günceldi');
-});
 document.getElementById('copyBtn').addEventListener('click', copyDayToClipboard);
 
 document.querySelectorAll('#ed-status-buttons .status-btn').forEach(btn => {
@@ -1233,7 +1199,23 @@ document.addEventListener('visibilitychange', () => {
   if (!document.hidden) syncDayFromServer(currentDate, { force: true });
 });
 
+function pruneLocalState() {
+  const keep = new Set([todayISO(), tomorrowISO()]);
+  let dirty = false;
+  for (const k of Object.keys(state.reservations)) {
+    const date = k.split('|')[0];
+    if (!keep.has(date)) { delete state.reservations[k]; dirty = true; }
+  }
+  const filteredHist = state.history.filter(h => keep.has(h.date));
+  if (filteredHist.length !== state.history.length) {
+    state.history = filteredHist;
+    dirty = true;
+  }
+  if (dirty) saveState();
+}
+
 (function init() {
+  pruneLocalState();
   currentDate = tomorrowISO();
   render();
   // Initial sync from server, then start polling

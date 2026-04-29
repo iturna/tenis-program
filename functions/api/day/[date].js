@@ -16,6 +16,23 @@ const empty = () => ({ reservations: {}, history: [], updatedAt: 0 });
 
 const isISODate = (s) => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
 
+// Istanbul is UTC+3 year-round.
+function istanbulISO(offsetDays = 0) {
+  const ms = Date.now() + (3 * 3600 * 1000) + (offsetDays * 86400 * 1000);
+  return new Date(ms).toISOString().slice(0, 10);
+}
+
+function isWritableDate(date) {
+  return date === istanbulISO(0) || date === istanbulISO(1);
+}
+
+// KV expiration (unix seconds): two days after the date, midnight Istanbul.
+// Ensures yesterday's data evicts itself without manual cleanup.
+function expirationFor(date) {
+  const midnightIstanbul = Date.parse(date + 'T00:00:00+03:00');
+  return Math.floor(midnightIstanbul / 1000) + 2 * 86400;
+}
+
 async function read(env, date) {
   const raw = await env.TENNIS_DATA.get(KEY(date));
   if (!raw) return empty();
@@ -32,7 +49,9 @@ async function read(env, date) {
 
 async function write(env, date, state) {
   state.updatedAt = Date.now();
-  await env.TENNIS_DATA.put(KEY(date), JSON.stringify(state));
+  await env.TENNIS_DATA.put(KEY(date), JSON.stringify(state), {
+    expiration: expirationFor(date),
+  });
   return state;
 }
 
@@ -55,6 +74,7 @@ export async function onRequestGet({ params, env, request }) {
 
 export async function onRequestPost({ params, env, request }) {
   if (!isISODate(params.date)) return json({ error: 'invalid date' }, { status: 400 });
+  if (!isWritableDate(params.date)) return json({ error: 'date out of window' }, { status: 403 });
   const date = params.date;
   let body;
   try {
