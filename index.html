@@ -226,6 +226,18 @@
   td.slot.s-eslesti  { background: #f0fdf4; border-left: 4px solid var(--c-eslesti); }
   td.slot.s-servis   { background: #fefce8; border-left: 4px solid var(--c-servis); }
 
+  /* Screenshot mode: clean, read-only view for manual capture */
+  body.screenshot-mode .history-panel { display: none; }
+  body.screenshot-mode main { grid-template-columns: 1fr !important; }
+  body.screenshot-mode td.slot { cursor: default; }
+  body.screenshot-mode td.slot:hover { outline: none; }
+  body.screenshot-mode .empty-day {
+    text-align: center;
+    color: var(--muted);
+    font-style: italic;
+    padding: 24px 8px;
+  }
+
   .legend {
     display: flex;
     flex-wrap: wrap;
@@ -469,9 +481,8 @@
   <div class="controls">
     <button id="todayBtn" class="day-btn">Bugün</button>
     <button id="tomorrowBtn" class="day-btn">Yarın</button>
-    <button id="copyBtn" class="primary">📷 Görsel Kopyala</button>
-    <label class="copy-opt" title="Kapalıysa boş saatler de görselde olur">
-      <input type="checkbox" id="copyOnlyFilled" checked> sadece dolu
+    <label class="copy-opt" title="Sadece dolu saatleri ve kayıtları gösterir; ekran görüntüsü için sade görünüm">
+      <input type="checkbox" id="screenshotMode"> 📷 ekran görüntü modu
     </label>
   </div>
 </header>
@@ -646,30 +657,51 @@ function prevHour(time) {
 }
 
 // ---------- Render schedule ----------
+let screenshotMode = false;
+
 function render() {
   const today = todayISO();
   const tomorrow = tomorrowISO();
   document.getElementById('todayBtn').classList.toggle('active', currentDate === today);
   document.getElementById('tomorrowBtn').classList.toggle('active', currentDate === tomorrow);
+  document.body.classList.toggle('screenshot-mode', screenshotMode);
   document.getElementById('dayLabel').textContent = `Gün Programı — ${formatDateTR(currentDate)}`;
   document.getElementById('historyLabel').textContent = `Değişiklik Geçmişi — ${formatDateTR(currentDate)}`;
   const tbody = document.getElementById('scheduleBody');
   tbody.innerHTML = '';
-  for (const time of HOURS) {
+
+  let rows = HOURS;
+  if (screenshotMode) {
+    rows = HOURS.filter(t => COURTS.some(c => getRes(currentDate, c.code, t)));
+  }
+
+  if (screenshotMode && !rows.length) {
     const tr = document.createElement('tr');
-    const tdTime = document.createElement('td');
-    tdTime.className = 'time-col';
-    tdTime.textContent = time;
-    tr.appendChild(tdTime);
-    for (const court of COURTS) {
-      const td = document.createElement('td');
-      td.className = 'slot';
-      const res = getRes(currentDate, court.code, time);
-      renderCell(td, res, currentDate, court.code, time);
-      td.addEventListener('click', () => openEditor(currentDate, court.code, time));
-      tr.appendChild(td);
-    }
+    const td = document.createElement('td');
+    td.colSpan = 1 + COURTS.length;
+    td.className = 'empty-day';
+    td.textContent = 'Bu güne ait kayıt yok';
+    tr.appendChild(td);
     tbody.appendChild(tr);
+  } else {
+    for (const time of rows) {
+      const tr = document.createElement('tr');
+      const tdTime = document.createElement('td');
+      tdTime.className = 'time-col';
+      tdTime.textContent = time;
+      tr.appendChild(tdTime);
+      for (const court of COURTS) {
+        const td = document.createElement('td');
+        td.className = 'slot';
+        const res = getRes(currentDate, court.code, time);
+        renderCell(td, res, currentDate, court.code, time);
+        if (!screenshotMode) {
+          td.addEventListener('click', () => openEditor(currentDate, court.code, time));
+        }
+        tr.appendChild(td);
+      }
+      tbody.appendChild(tr);
+    }
   }
   renderHistory();
 }
@@ -833,232 +865,6 @@ function saveFromEditor() {
   render();
 }
 
-// ---------- Image copy ----------
-const STATUS_VISUAL = {
-  ariyor:  { bg: '#fff7ed', edge: '#fb923c', label: '🟠 arıyor' },
-  eslesti: { bg: '#f0fdf4', edge: '#22c55e', label: '🟢 eşleşti' },
-  servis:  { bg: '#fefce8', edge: '#eab308', label: '🟡 servis' },
-};
-
-function truncateText(ctx, text, maxW) {
-  if (ctx.measureText(text).width <= maxW) return text;
-  let s = text;
-  while (s.length > 1 && ctx.measureText(s + '…').width > maxW) s = s.slice(0, -1);
-  return s + '…';
-}
-
-function statusText(res) {
-  const partners = (res.partners || []).filter(Boolean);
-  switch (res.status) {
-    case 'ariyor':  return '🟠 rakip arıyor';
-    case 'eslesti': return partners.length ? `🟢 vs ${partners.join(', ')}` : '🟢 eşleşti';
-    case 'servis':  return '🟡 servis';
-    default:        return res.status;
-  }
-}
-
-function buildDayText(onlyFilled) {
-  const header = `🎾 ${formatDateTR(currentDate)} — Tenis Programı`;
-  let body = '';
-  if (onlyFilled) {
-    const items = [];
-    for (const time of HOURS) {
-      for (const court of COURTS) {
-        const r = getRes(currentDate, court.code, time);
-        if (r) items.push({ res: r, courtLabel: court.label });
-      }
-    }
-    if (!items.length) return header + '\n\n(bu güne ait kayıt yok)';
-    body = items.map(({ res, courtLabel }) => {
-      return `• ${res.time} — ${res.owner} [${courtLabel}] ${statusText(res)}`;
-    }).join('\n');
-  } else {
-    const sections = [];
-    for (const court of COURTS) {
-      const lines = [court.label];
-      for (const time of HOURS) {
-        const r = getRes(currentDate, court.code, time);
-        if (r) {
-          lines.push(`• ${time} — ${r.owner} ${statusText(r)}`);
-        } else {
-          lines.push(`• ${time} —`);
-        }
-      }
-      sections.push(lines.join('\n'));
-    }
-    body = sections.join('\n\n');
-  }
-  return header + '\n\n' + body;
-}
-
-function renderDayImage(onlyFilled) {
-  let rows = HOURS.slice();
-  if (onlyFilled) {
-    rows = HOURS.filter(t => COURTS.some(c => getRes(currentDate, c.code, t)));
-    if (!rows.length) return null;
-  }
-
-  const dpr = Math.min(window.devicePixelRatio || 2, 3);
-  const W = 760;
-  const pad = 24;
-  const titleH = 64;
-  const headerH = 42;
-  const rowH = 64;
-  const timeColW = 72;
-  const courtW = (W - pad * 2 - timeColW) / 3;
-  const H = pad * 2 + titleH + headerH + rows.length * rowH + 28;
-
-  const canvas = document.createElement('canvas');
-  canvas.width = W * dpr;
-  canvas.height = H * dpr;
-  const ctx = canvas.getContext('2d');
-  ctx.scale(dpr, dpr);
-
-  const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif';
-
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, W, H);
-
-  ctx.fillStyle = '#1f2328';
-  ctx.font = `600 20px ${FONT}`;
-  ctx.textBaseline = 'top';
-  ctx.textAlign = 'left';
-  ctx.fillText('🎾 Bahçeşehir Tenis — Gün Programı', pad, pad);
-  ctx.font = `14px ${FONT}`;
-  ctx.fillStyle = '#656d76';
-  ctx.fillText(formatDateTR(currentDate), pad, pad + 28);
-
-  let y = pad + titleH;
-  ctx.fillStyle = '#f9fafb';
-  ctx.fillRect(pad, y, W - pad * 2, headerH);
-  ctx.strokeStyle = '#e3e6ea';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(pad + 0.5, y + 0.5, W - pad * 2 - 1, headerH - 1);
-
-  ctx.fillStyle = '#1f2328';
-  ctx.font = `600 13px ${FONT}`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('Saat', pad + timeColW / 2, y + headerH / 2);
-  for (let i = 0; i < COURTS.length; i++) {
-    const cx = pad + timeColW + courtW * i + courtW / 2;
-    ctx.fillText(COURTS[i].label, cx, y + headerH / 2);
-  }
-  ctx.beginPath();
-  ctx.moveTo(pad + timeColW + 0.5, y);
-  ctx.lineTo(pad + timeColW + 0.5, y + headerH);
-  for (let i = 1; i < COURTS.length; i++) {
-    const x = pad + timeColW + courtW * i + 0.5;
-    ctx.moveTo(x, y);
-    ctx.lineTo(x, y + headerH);
-  }
-  ctx.strokeStyle = '#e3e6ea';
-  ctx.stroke();
-
-  y += headerH;
-  for (const time of rows) {
-    ctx.fillStyle = '#f9fafb';
-    ctx.fillRect(pad, y, timeColW, rowH);
-    ctx.strokeStyle = '#e3e6ea';
-    ctx.strokeRect(pad + 0.5, y + 0.5, timeColW - 1, rowH - 1);
-    ctx.fillStyle = '#656d76';
-    ctx.font = `600 13px ${FONT}`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(time, pad + timeColW / 2, y + rowH / 2);
-
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'top';
-    for (let i = 0; i < COURTS.length; i++) {
-      const x = pad + timeColW + courtW * i;
-      const r = getRes(currentDate, COURTS[i].code, time);
-      if (r) {
-        const v = STATUS_VISUAL[r.status] || { bg: '#f3f4f6', edge: '#9ca3af', label: r.status };
-        ctx.fillStyle = v.bg;
-        ctx.fillRect(x, y, courtW, rowH);
-        ctx.fillStyle = v.edge;
-        ctx.fillRect(x, y, 4, rowH);
-        ctx.strokeStyle = '#e3e6ea';
-        ctx.strokeRect(x + 0.5, y + 0.5, courtW - 1, rowH - 1);
-
-        ctx.fillStyle = '#1f2328';
-        ctx.font = `600 13px ${FONT}`;
-        ctx.fillText(truncateText(ctx, r.owner, courtW - 18), x + 12, y + 8);
-
-        if (r.partners && r.partners.length) {
-          ctx.fillStyle = '#656d76';
-          ctx.font = `12px ${FONT}`;
-          ctx.fillText(truncateText(ctx, 'vs ' + r.partners.join(', '), courtW - 18), x + 12, y + 28);
-        }
-
-        ctx.fillStyle = '#374151';
-        ctx.font = `11px ${FONT}`;
-        ctx.fillText(v.label, x + 12, y + rowH - 18);
-      } else {
-        ctx.strokeStyle = '#e3e6ea';
-        ctx.strokeRect(x + 0.5, y + 0.5, courtW - 1, rowH - 1);
-      }
-    }
-    y += rowH;
-  }
-
-  ctx.fillStyle = '#9ca3af';
-  ctx.font = `11px ${FONT}`;
-  ctx.textAlign = 'right';
-  ctx.textBaseline = 'top';
-  ctx.fillText('Tenis Grup Yöneticisi', W - pad, y + 8);
-
-  return canvas;
-}
-
-function copyDayToClipboard() {
-  const onlyFilled = document.getElementById('copyOnlyFilled').checked;
-  const canvas = renderDayImage(onlyFilled);
-  if (!canvas) {
-    showToast('Bu güne ait kayıt yok');
-    return;
-  }
-  const text = buildDayText(onlyFilled);
-
-  canvas.toBlob(async (blob) => {
-    if (!blob) {
-      showToast('Görsel oluşturulamadı');
-      return;
-    }
-    let copied = false;
-    try {
-      if (navigator.clipboard && window.ClipboardItem) {
-        const item = new ClipboardItem({
-          'image/png': blob,
-          'text/plain': new Blob([text], { type: 'text/plain' }),
-        });
-        await navigator.clipboard.write([item]);
-        copied = true;
-      }
-    } catch (err) {
-      try {
-        const item = new ClipboardItem({ 'image/png': blob });
-        await navigator.clipboard.write([item]);
-        copied = true;
-      } catch (err2) {
-        console.warn('clipboard image write failed', err2);
-      }
-    }
-
-    if (copied) {
-      showToast('📷 Görsel panoya kopyalandı');
-    } else {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `tenis-${currentDate}.png`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-      showToast('📷 PNG indirildi (tarayıcı panoya görsel yazamadı)');
-    }
-  }, 'image/png');
-}
-
 function showToast(msg) {
   const t = document.createElement('div');
   t.className = 'toast';
@@ -1075,7 +881,11 @@ function navigateTo(date) {
 }
 document.getElementById('todayBtn').addEventListener('click', () => navigateTo(todayISO()));
 document.getElementById('tomorrowBtn').addEventListener('click', () => navigateTo(tomorrowISO()));
-document.getElementById('copyBtn').addEventListener('click', copyDayToClipboard);
+document.getElementById('screenshotMode').addEventListener('change', e => {
+  screenshotMode = e.target.checked;
+  if (screenshotMode) closeEditor();
+  render();
+});
 
 document.querySelectorAll('#ed-status-buttons .status-btn').forEach(btn => {
   btn.addEventListener('click', () => setEditorStatus(btn.dataset.status));
