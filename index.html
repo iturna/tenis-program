@@ -473,6 +473,7 @@
     <button id="nextDay" title="Sonraki gün">›</button>
     <button id="todayBtn">Bugün</button>
     <button id="tomorrowBtn">Yarın</button>
+    <button id="refreshBtn" title="Sunucudan son veriyi çek">🔄 Güncelle</button>
     <button id="copyBtn" class="primary">📷 Görsel Kopyala</button>
     <label class="copy-opt" title="Kapalıysa boş saatler de görselde olur">
       <input type="checkbox" id="copyOnlyFilled" checked> sadece dolu
@@ -1101,6 +1102,16 @@ document.getElementById('todayBtn').addEventListener('click', () => {
 document.getElementById('tomorrowBtn').addEventListener('click', () => {
   currentDate = tomorrowISO();
   render();
+});
+document.getElementById('refreshBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('refreshBtn');
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Yükleniyor';
+  const added = await tryFetchSeed(currentDate);
+  btn.disabled = false;
+  btn.textContent = original;
+  showToast(added > 0 ? `🔄 ${added} yeni kayıt eklendi` : '✓ Güncel');
 });
 document.getElementById('copyBtn').addEventListener('click', copyDayToClipboard);
 
