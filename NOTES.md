@@ -1,5 +1,34 @@
 # Notlar
 
+## 🚀 Hızlı Deploy (copy-paste)
+
+```bash
+# 1) Lokal test (opsiyonel)
+npx wrangler pages dev . --kv TENNIS_DATA --port 8788
+# → http://127.0.0.1:8788/league/ , .dev.vars'taki şifreyle giriş
+
+# 2) Production'a deploy (Pages GIT'e bağlı DEĞİL → manuel)
+npx wrangler pages deploy . --project-name=tenis-program --branch=main --commit-dirty=true
+
+# 3) Şifre/secret değiştirme (gerekirse)
+echo "yeni-şifre" | npx wrangler pages secret put LEAGUE_ADMIN_PASSWORD --project-name=tenis-program
+
+# 4) KV inceleme/düzenleme (gerekirse)
+NS=d162e702f4fd449594f75d29bfad41bb
+npx wrangler kv key list --namespace-id=$NS --remote
+npx wrangler kv key get --namespace-id=$NS "league:state" --remote
+npx wrangler kv key put --namespace-id=$NS "league:state" --path=/tmp/state.json --remote
+```
+
+**Önkoşul:** `.env` dosyasında `CLOUDFLARE_API_TOKEN` ve `CLOUDFLARE_ACCOUNT_ID` set (auth için wrangler bunları okur).
+**Komut öncesi:** `set -a; source .env; set +a` — env değişkenlerini yükle.
+
+**Pages bağlı olmadığı için git push otomatik deploy etmez.** Her değişiklikten sonra deploy komutunu manuel çalıştır.
+
+İstersen Pages → Settings → "Connect to Git" ile bağla; o zaman `git push` ile otomatik deploy olur.
+
+---
+
 ## Tenis Ligi (ELO) — yeni modül (2026-05-13)
 
 ### Yapı
