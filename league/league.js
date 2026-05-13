@@ -80,6 +80,19 @@ async function addPlayer(payload) {
   return res.json();
 }
 
+async function deletePlayer(slug) {
+  const res = await fetch(`${API}/player`, {
+    method: 'DELETE',
+    headers: adminHeaders(),
+    body: JSON.stringify({ slug }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'silme başarısız');
+  }
+  return res.json();
+}
+
 async function runSeed() {
   const res = await fetch(`${API}/seed`, {
     method: 'POST',
@@ -250,6 +263,24 @@ function renderAdmin() {
   fillSelect(document.getElementById('matchWinner'), 'Kazanan seç...');
   fillSelect(document.getElementById('matchLoser'), 'Kaybeden seç...');
   document.getElementById('matchDate').value = todayISO();
+
+  // Oyuncu yönetim listesi
+  const mgr = document.getElementById('playerManage');
+  if (mgr) {
+    mgr.innerHTML = '';
+    for (const p of players) {
+      const li = document.createElement('li');
+      const total = (p.wins || 0) + (p.losses || 0);
+      li.innerHTML = `
+        <div class="pm-info">
+          <div class="pm-name">${escape(p.name)}</div>
+          <div class="pm-meta">ELO ${p.rating} · ${p.wins || 0}G ${p.losses || 0}M · ${total} maç</div>
+        </div>
+        <button class="pm-del" data-slug="${escape(p.slug)}" data-name="${escape(p.name)}" data-matches="${total}">Sil</button>
+      `;
+      mgr.appendChild(li);
+    }
+  }
 }
 
 function todayISO() {
@@ -372,6 +403,29 @@ document.getElementById('playerForm').addEventListener('submit', async (e) => {
     alert('Oyuncu eklendi.');
   } catch (err) {
     alert('Hata: ' + err.message);
+  }
+});
+
+// Oyuncu silme: event delegation, çift onay
+document.getElementById('playerManage').addEventListener('click', async (e) => {
+  const btn = e.target.closest('.pm-del');
+  if (!btn) return;
+  const slug = btn.dataset.slug;
+  const name = btn.dataset.name;
+  const matches = parseInt(btn.dataset.matches, 10) || 0;
+  const msg = matches > 0
+    ? `"${name}" oyuncusu siliniyor. ${matches} maç oynamış — geçmiş maçlardaki kaydı kalır ama listede görünmez.\n\nDevam edilsin mi?`
+    : `"${name}" oyuncusunu silmek istediğine emin misin?`;
+  if (!confirm(msg)) return;
+  btn.disabled = true;
+  btn.textContent = '...';
+  try {
+    await deletePlayer(slug);
+    await fetchState();
+  } catch (err) {
+    alert('Hata: ' + err.message);
+    btn.disabled = false;
+    btn.textContent = 'Sil';
   }
 });
 
