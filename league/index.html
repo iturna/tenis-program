@@ -16,6 +16,7 @@
     <button class="tab active" data-view="pyramid">Piramit</button>
     <button class="tab" data-view="leaderboard">Sıralama</button>
     <button class="tab" data-view="matches">Maçlar</button>
+    <button class="tab" data-view="calc">Hesap</button>
     <button class="tab" data-view="info">Bilgi</button>
     <button class="tab admin-tab" data-view="admin">Admin</button>
   </nav>
@@ -53,6 +54,23 @@
   <section class="view hidden" id="view-matches">
     <ul class="matches" id="matches"></ul>
     <p class="hint" id="matches-empty">Henüz maç oynanmadı.</p>
+  </section>
+
+  <!-- Hesap (puan tahmini) -->
+  <section class="view hidden" id="view-calc">
+    <div class="calc-card">
+      <h2>Maç sonucu tahmini</h2>
+      <p class="hint">İki oyuncu seç, her iki sonuç senaryosunda kazanılacak/kaybedilecek puanı gör. Provisional (ilk 5 maç) oyuncular için K-faktörü farklıdır.</p>
+      <div class="calc-selects">
+        <label>Oyuncu A
+          <select id="calcA"></select>
+        </label>
+        <label>Oyuncu B
+          <select id="calcB"></select>
+        </label>
+      </div>
+      <div id="calcResult" class="calc-result"></div>
+    </div>
   </section>
 
   <!-- Bilgi -->
@@ -168,13 +186,6 @@ B kazanırsa → B: +<span id="info-w2">3</span>,  A: -<span id="info-w2b">3</sp
         <summary><h3>Oyuncu yönetimi</h3></summary>
         <p class="hint">Maç oynamış oyuncuları silmek dikkat ister: geçmiş maçlardaki referans bozulmaz ama listeden kaybolur.</p>
         <ul class="player-manage" id="playerManage"></ul>
-      </details>
-
-      <details>
-        <summary><h3>Seed (ilk yükleme)</h3></summary>
-        <p class="hint">seed.json'daki 50 oyuncuyu yükler. Sadece state boşsa çalışır.</p>
-        <button id="seedBtn">Seed çalıştır</button>
-        <p id="seedStatus" class="hint"></p>
       </details>
     </div>
   </section>

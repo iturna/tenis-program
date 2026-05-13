@@ -93,17 +93,6 @@ async function deletePlayer(slug) {
   return res.json();
 }
 
-async function runSeed() {
-  const res = await fetch(`${API}/seed`, {
-    method: 'POST',
-    headers: adminHeaders(),
-    body: JSON.stringify({}),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'seed başarısız');
-  return data;
-}
-
 // ───── ELO preview ─────
 function expected(a, b) {
   return 1 / (1 + Math.pow(10, (b - a) / 400));
@@ -227,6 +216,74 @@ function renderMatches() {
   }
 }
 
+// ───── Render: Hesap ─────
+function fillCalcSelects() {
+  const players = sortedPlayers();
+  const a = document.getElementById('calcA');
+  const b = document.getElementById('calcB');
+  const prevA = a.value;
+  const prevB = b.value;
+  const opts = '<option value="">Seç...</option>' +
+    players.map(p => `<option value="${escape(p.slug)}">${escape(p.name)} (${p.rating})</option>`).join('');
+  a.innerHTML = opts;
+  b.innerHTML = opts;
+  if (prevA && state.players[prevA]) a.value = prevA;
+  if (prevB && state.players[prevB]) b.value = prevB;
+}
+
+function renderCalcResult() {
+  const aSlug = document.getElementById('calcA').value;
+  const bSlug = document.getElementById('calcB').value;
+  const root = document.getElementById('calcResult');
+  if (!aSlug || !bSlug) {
+    root.innerHTML = `<div class="calc-empty">İki oyuncu seç → sonuç burada görünür.</div>`;
+    return;
+  }
+  if (aSlug === bSlug) {
+    root.innerHTML = `<div class="calc-empty">Aynı oyuncu seçilemez.</div>`;
+    return;
+  }
+  const a = state.players[aSlug];
+  const b = state.players[bSlug];
+  const eA = expected(a.rating, b.rating);
+  const eB = 1 - eA;
+  const kA = effectiveK(a);
+  const kB = effectiveK(b);
+  const aWinDeltaA = Math.round(kA * (1 - eA));
+  const aWinDeltaB = Math.round(kB * (0 - eB));
+  const bWinDeltaB = Math.round(kB * (1 - eB));
+  const bWinDeltaA = Math.round(kA * (0 - eA));
+  const provA = (a.matchesPlayed || 0) < (state.config.provisionalMatches || 5);
+  const provB = (b.matchesPlayed || 0) < (state.config.provisionalMatches || 5);
+
+  const scenario = (winner, loser, wSlug, lSlug, wDelta, lDelta, wK, lK) => `
+    <div class="calc-scenario">
+      <div class="calc-scenario-title">${escape(winner.name)} kazanırsa</div>
+      <div class="calc-rows">
+        <div><span class="gain">${escape(winner.name)}: ${winner.rating} → ${winner.rating + wDelta} (+${wDelta})</span></div>
+        <div><span class="loss">${escape(loser.name)}: ${loser.rating} → ${loser.rating + lDelta} (${lDelta})</span></div>
+      </div>
+      <div class="calc-meta">K-faktörü: ${escape(winner.name)}=${wK}${wK > (state.config.kFactor || 32) ? ' <span class="calc-prov">(provisional)</span>' : ''}, ${escape(loser.name)}=${lK}${lK > (state.config.kFactor || 32) ? ' <span class="calc-prov">(provisional)</span>' : ''}</div>
+    </div>
+  `;
+
+  const probability = `
+    <div class="calc-meta" style="margin-bottom:4px">
+      Beklenti: <strong>${escape(a.name)}</strong> %${Math.round(eA * 100)} kazanır,
+      <strong>${escape(b.name)}</strong> %${Math.round(eB * 100)} kazanır
+    </div>
+  `;
+
+  root.innerHTML = probability +
+    scenario(a, b, aSlug, bSlug, aWinDeltaA, aWinDeltaB, kA, kB) +
+    scenario(b, a, bSlug, aSlug, bWinDeltaB, bWinDeltaA, kB, kA);
+}
+
+function renderCalc() {
+  fillCalcSelects();
+  renderCalcResult();
+}
+
 // ───── Render: Bilgi ─────
 function renderInfo() {
   const k = state.config.kFactor || 32;
@@ -300,6 +357,7 @@ function render() {
   renderPyramid();
   renderLeaderboard();
   renderMatches();
+  renderCalc();
   renderInfo();
   renderAdmin();
 }
@@ -315,6 +373,8 @@ document.querySelectorAll('.tab').forEach(btn => {
 });
 
 document.getElementById('searchInput').addEventListener('input', renderLeaderboard);
+document.getElementById('calcA').addEventListener('change', renderCalcResult);
+document.getElementById('calcB').addEventListener('change', renderCalcResult);
 
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -426,18 +486,6 @@ document.getElementById('playerManage').addEventListener('click', async (e) => {
     alert('Hata: ' + err.message);
     btn.disabled = false;
     btn.textContent = 'Sil';
-  }
-});
-
-document.getElementById('seedBtn').addEventListener('click', async () => {
-  const statusEl = document.getElementById('seedStatus');
-  statusEl.textContent = 'Çalışıyor...';
-  try {
-    const r = await runSeed();
-    statusEl.textContent = `Tamam: ${r.playerCount} oyuncu yüklendi.`;
-    await fetchState();
-  } catch (err) {
-    statusEl.textContent = 'Hata: ' + err.message;
   }
 });
 

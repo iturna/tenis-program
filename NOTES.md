@@ -15,17 +15,22 @@
 - `DELETE /api/league/match` — admin: son maçı geri al
 - `POST   /api/league/player` — admin: oyuncu ekle/güncelle
 - `DELETE /api/league/player` — admin: oyuncu sil (body: {slug})
-- `POST   /api/league/seed` — admin: seed.json'dan ilk veriyi yükle
 
-### Deploy adımları (ilk seferlik)
-1. **Push:** `git add . && git commit -m "lig modülü" && git push` — Pages auto-deploy.
-2. **Şifre belirle:** Cloudflare Dashboard → Workers & Pages → tenis-program → Settings → Environment variables → Production:
-   - Variable: `LEAGUE_ADMIN_PASSWORD`
-   - Value: (güçlü şifre, kimseyle paylaşma)
-   - "Encrypt" işaretle (secret olur)
-3. **Re-deploy** (env değişikliği için yeni deploy gerek): Dashboard'dan veya boş commit ile.
-4. **Seed çalıştır:** `/league/` → Admin tab → şifreyle giriş → "Seed çalıştır" butonu. 50 oyuncuyu yükler.
-5. **Test:** `/league/` → Piramit ve Sıralama sekmelerinde 50 oyuncu görünmeli.
+### İlk seed (yapıldı, 2026-05-13)
+50 oyuncu KV'ye doğrudan yazıldı (`league/seed.json` referansından üretildi):
+```bash
+npx wrangler kv key put --namespace-id=d162e702f4fd449594f75d29bfad41bb "league:state" --path=/tmp/league-state.json --remote
+```
+`league/seed.json` tarihsel referans olarak duruyor; admin UI'da seed butonu yok.
+
+### Deploy (Pages git'e bağlı DEĞİL, manuel)
+```bash
+npx wrangler pages deploy . --project-name=tenis-program --branch=main
+```
+İlk kez şifre kurulumu:
+```bash
+echo "şifre" | npx wrangler pages secret put LEAGUE_ADMIN_PASSWORD --project-name=tenis-program
+```
 
 ### ELO config
 - K-factor: 32 (standart maç sonrası değişim)

@@ -258,3 +258,37 @@ details > *:last-child { padding-bottom: 16px; }
   cursor: pointer;
 }
 .player-manage .pm-del:hover { background: var(--danger); color: white; }
+
+.calc-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 20px;
+}
+.calc-card h2 { margin: 0 0 8px; font-size: 17px; }
+.calc-selects { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+.calc-selects label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+.calc-selects select {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 15px;
+  background: white;
+}
+@media (max-width: 480px) {
+  .calc-selects { grid-template-columns: 1fr; }
+}
+.calc-result { display: flex; flex-direction: column; gap: 10px; min-height: 60px; }
+.calc-scenario {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: #fafaf8;
+}
+.calc-scenario-title { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+.calc-rows { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-family: ui-monospace, monospace; }
+.calc-rows .gain { color: var(--gain); }
+.calc-rows .loss { color: var(--loss); }
+.calc-meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.calc-prov { color: #b45309; font-weight: 500; }
+.calc-empty { color: var(--muted); font-size: 14px; padding: 20px 0; text-align: center; }
