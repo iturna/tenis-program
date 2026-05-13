@@ -32,14 +32,20 @@
   header {
     background: var(--panel);
     border-bottom: 1px solid var(--border);
-    padding: 12px 20px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    flex-wrap: wrap;
+    padding: 0 20px;
     position: sticky;
     top: 0;
     z-index: 10;
+  }
+  .header-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 12px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
   }
   header h1 {
     margin: 0;
@@ -51,7 +57,6 @@
     gap: 8px;
     align-items: center;
     flex-wrap: wrap;
-    margin-left: auto;
   }
   button {
     padding: 7px 12px;
@@ -84,6 +89,16 @@
     user-select: none;
   }
   .copy-opt input { margin: 0; }
+  .league-link {
+    padding: 7px 12px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text);
+    text-decoration: none;
+  }
+  .league-link:hover { background: #f1f3f5; }
   .toast {
     position: fixed;
     bottom: 24px;
@@ -228,9 +243,16 @@
 
   /* Screenshot mode: clean, read-only view for manual capture */
   body.screenshot-mode .history-panel { display: none; }
-  body.screenshot-mode main { grid-template-columns: 1fr !important; }
-  body.screenshot-mode td.slot { cursor: default; }
+  body.screenshot-mode main {
+    grid-template-columns: 1fr !important;
+    max-width: 560px;
+  }
+  body.screenshot-mode .header-inner { max-width: 560px; }
+  body.screenshot-mode td.slot { cursor: default; height: auto; min-height: 60px; }
   body.screenshot-mode td.slot:hover { outline: none; }
+  body.screenshot-mode td.slot .cell-inner { overflow: visible; }
+  body.screenshot-mode td.slot .owner { white-space: normal; text-overflow: clip; overflow: visible; }
+  body.screenshot-mode td.slot .partners { white-space: normal; text-overflow: clip; overflow: visible; }
   body.screenshot-mode .empty-day {
     text-align: center;
     color: var(--muted);
@@ -416,9 +438,12 @@
   /* Mobile */
   @media (max-width: 700px) {
     header {
-      padding: 10px 12px;
-      gap: 8px;
+      padding: 0 12px;
       position: relative;
+    }
+    .header-inner {
+      padding: 10px 0;
+      gap: 8px;
     }
     header h1 {
       font-size: 16px;
@@ -426,7 +451,6 @@
     }
     .controls {
       width: 100%;
-      margin-left: 0;
       gap: 6px;
     }
     .controls button {
@@ -477,13 +501,16 @@
 <body>
 
 <header>
-  <h1>🎾 Tenis Grup Rezervasyon</h1>
-  <div class="controls">
-    <button id="todayBtn" class="day-btn">Bugün</button>
-    <button id="tomorrowBtn" class="day-btn">Yarın</button>
-    <label class="copy-opt" title="Sadece dolu saatleri ve kayıtları gösterir; ekran görüntüsü için sade görünüm">
-      <input type="checkbox" id="screenshotMode"> 📷 ekran görüntü modu
-    </label>
+  <div class="header-inner">
+    <h1>🎾 Tenis Grup Rezervasyon</h1>
+    <div class="controls">
+      <button id="todayBtn" class="day-btn">Bugün</button>
+      <button id="tomorrowBtn" class="day-btn">Yarın</button>
+      <label class="copy-opt" title="Sadece dolu saatleri ve kayıtları gösterir; ekran görüntüsü için sade görünüm">
+        <input type="checkbox" id="screenshotMode"> 📷 ekran görüntü modu
+      </label>
+      <a href="/league/" class="league-link" title="ELO tabanlı lig sıralaması">🏆 Lig</a>
+    </div>
   </div>
 </header>
 
@@ -923,7 +950,11 @@ async function fetchDayFromServer(date, opts = {}) {
   try {
     const headers = {};
     if (!opts.force && etagByDate[date]) headers['If-None-Match'] = etagByDate[date];
-    const res = await fetch(`${API_BASE}/${date}`, { headers, cache: 'no-store' });
+    const res = await fetch(`${API_BASE}/${date}`, {
+      headers,
+      cache: 'no-store',
+      signal: AbortSignal.timeout(8000),
+    });
     if (res.status === 304) return { changed: false };
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const etag = res.headers.get('ETag');

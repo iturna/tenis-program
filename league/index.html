@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Tenis Ligi · ELO Sıralaması</title>
+<link rel="stylesheet" href="league.css" />
+</head>
+<body>
+<header class="topbar">
+  <div class="title">
+    <a href="/" class="back" title="Ana sayfa">←</a>
+    <h1>Tenis Ligi</h1>
+  </div>
+  <nav class="tabs">
+    <button class="tab active" data-view="pyramid">Piramit</button>
+    <button class="tab" data-view="leaderboard">Sıralama</button>
+    <button class="tab" data-view="matches">Maçlar</button>
+    <button class="tab" data-view="info">Bilgi</button>
+    <button class="tab admin-tab" data-view="admin">Admin</button>
+  </nav>
+</header>
+
+<main>
+  <!-- Piramit -->
+  <section class="view" id="view-pyramid">
+    <div class="pyramid" id="pyramid"></div>
+    <p class="hint">Piramit ELO puanına göre otomatik dizilir. Tepe = en yüksek puan.</p>
+  </section>
+
+  <!-- Sıralama -->
+  <section class="view hidden" id="view-leaderboard">
+    <div class="search-row">
+      <input type="search" id="searchInput" placeholder="Oyuncu ara..." />
+    </div>
+    <table class="leaderboard" id="leaderboard">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Oyuncu</th>
+          <th class="num">ELO</th>
+          <th class="num">G</th>
+          <th class="num">M</th>
+          <th class="num">% </th>
+          <th class="num">Son maç</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <!-- Maçlar -->
+  <section class="view hidden" id="view-matches">
+    <ul class="matches" id="matches"></ul>
+    <p class="hint" id="matches-empty">Henüz maç oynanmadı.</p>
+  </section>
+
+  <!-- Bilgi -->
+  <section class="view hidden" id="view-info">
+    <article class="info-card">
+      <h2>ELO sistemi nasıl çalışır?</h2>
+      <p>Bu lig <strong>ELO</strong> puanlama sistemi kullanır. Her maç sonrasında kazananın puanı artar, kaybedenin puanı azalır. Ne kadar değişeceği iki şeye bağlıdır:</p>
+      <ul>
+        <li><strong>Beklenti:</strong> Düşük puanlı oyuncu yüksek puanlıyı yenerse çok puan kazanır. Beklenen sonuç olursa az puan değişir.</li>
+        <li><strong>K-faktörü:</strong> Sabit (varsayılan <span id="info-k">32</span>). Yüksek K = puanlar daha hızlı değişir.</li>
+      </ul>
+      <h3>Formül</h3>
+      <pre class="formula">Beklenti(A) = 1 / (1 + 10^((puanB - puanA) / 400))
+Yeni puanA = puanA + K * (sonuc - Beklenti)
+  sonuc = 1 (kazandı) veya 0 (kaybetti)</pre>
+
+      <h3>Örnek</h3>
+      <pre class="formula">A=1200, B=1600 (B daha güçlü)
+Beklenti(A) = 1 / (1 + 10^(400/400)) = 0.091
+A kazanırsa → A: +<span id="info-w1">29</span>, B: -<span id="info-w1b">29</span>
+B kazanırsa → B: +<span id="info-w2">3</span>,  A: -<span id="info-w2b">3</span></pre>
+
+      <h2>Provisional (ilk maçlar)</h2>
+      <p>Yeni katılan veya çok az maç oynamış oyuncuların puanı hızlıca doğru seviyeye otururlar. İlk <strong><span id="info-prov">5</span></strong> maçta K-faktörü <strong><span id="info-provk">64</span></strong> olarak iki katı uygulanır. Bu süreçten sonra otomatik olarak standart K'ya geçer.</p>
+
+      <h2>Milat</h2>
+      <p>Sistem <strong id="info-milat">2026-05-13</strong> tarihinde başlatıldı. O tarihten önceki maçlar ve mevcut puanlar bu tarihte sabitlendi ("milat"). Sonraki tüm maçlar ELO formülüne göre işlenir.</p>
+      <p class="muted">Başlangıç ELO puanları, eski sistemdeki "puan" sütununun 0-910 aralığından 1000-1800 ELO aralığına ölçeklenmesiyle elde edildi.</p>
+
+      <h2>Puan aralıkları (referans)</h2>
+      <table class="ranges">
+        <tr><td>1000-1100</td><td>Başlangıç / yeni oyuncu</td></tr>
+        <tr><td>1100-1300</td><td>Geliştirici</td></tr>
+        <tr><td>1300-1500</td><td>Orta seviye</td></tr>
+        <tr><td>1500-1700</td><td>İleri seviye</td></tr>
+        <tr><td>1700+</td><td>Lig üstü</td></tr>
+      </table>
+    </article>
+  </section>
+
+  <!-- Admin -->
+  <section class="view hidden" id="view-admin">
+    <div id="admin-login">
+      <h2>Admin girişi</h2>
+      <p class="hint">Maç sonucu girmek ve oyuncu yönetimi için şifre.</p>
+      <form id="loginForm">
+        <input type="password" id="adminPassword" placeholder="Şifre" autocomplete="current-password" required />
+        <button type="submit">Giriş</button>
+      </form>
+      <p id="loginError" class="error hidden"></p>
+    </div>
+
+    <div id="admin-panel" class="hidden">
+      <div class="admin-header">
+        <span>Giriş yapıldı</span>
+        <button id="logoutBtn" class="link">Çıkış</button>
+      </div>
+
+      <details open>
+        <summary><h3>Maç sonucu gir</h3></summary>
+        <form id="matchForm" class="form">
+          <label>Kazanan
+            <select id="matchWinner" required></select>
+          </label>
+          <label>Kaybeden
+            <select id="matchLoser" required></select>
+          </label>
+          <label>Tarih
+            <input type="date" id="matchDate" />
+          </label>
+          <fieldset class="sets">
+            <legend>Set skorları (isteğe bağlı)</legend>
+            <div class="set-row">
+              <input type="number" min="0" max="7" placeholder="W" class="set-w" />
+              <span>-</span>
+              <input type="number" min="0" max="7" placeholder="L" class="set-l" />
+            </div>
+            <div class="set-row">
+              <input type="number" min="0" max="7" placeholder="W" class="set-w" />
+              <span>-</span>
+              <input type="number" min="0" max="7" placeholder="L" class="set-l" />
+            </div>
+            <div class="set-row">
+              <input type="number" min="0" max="7" placeholder="W" class="set-w" />
+              <span>-</span>
+              <input type="number" min="0" max="7" placeholder="L" class="set-l" />
+            </div>
+          </fieldset>
+          <label>Not (isteğe bağlı)
+            <textarea id="matchNote" rows="2" maxlength="500"></textarea>
+          </label>
+          <div class="preview" id="matchPreview"></div>
+          <button type="submit">Maçı kaydet</button>
+        </form>
+        <button id="undoBtn" class="danger">Son maçı geri al</button>
+      </details>
+
+      <details>
+        <summary><h3>Oyuncu ekle</h3></summary>
+        <form id="playerForm" class="form">
+          <label>İsim
+            <input type="text" id="playerName" required maxlength="60" />
+          </label>
+          <label>Başlangıç ELO
+            <input type="number" id="playerRating" min="500" max="3000" step="1" placeholder="1200 (varsayılan)" />
+          </label>
+          <button type="submit">Oyuncuyu ekle</button>
+        </form>
+      </details>
+
+      <details>
+        <summary><h3>Seed (ilk yükleme)</h3></summary>
+        <p class="hint">seed.json'daki 50 oyuncuyu yükler. Sadece state boşsa çalışır.</p>
+        <button id="seedBtn">Seed çalıştır</button>
+        <p id="seedStatus" class="hint"></p>
+      </details>
+    </div>
+  </section>
+</main>
+
+<script src="league.js"></script>
+</body>
+</html>
